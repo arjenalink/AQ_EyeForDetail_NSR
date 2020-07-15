@@ -1,6 +1,10 @@
+%% This script performs all data analyses and generates all results reported 
+% in our Nature Scientific Reports paper "Clinically relevant autistic
+% traits predict greater reliance on detail for image recognition", 2020 
 clear all;close all
-%% load .mat file containing all behavioural data
+%% load .mat files containing all behavioural data
 load ImportAndSaveAllData_Master_DATA_WithRTsNOL.mat
+load SelFts_Sj_And_Beh_Data.mat
 %% Global variables
 nSjs=size(FtDiagnRatingPerSj,1);
 nAQquestions=numel(Q_AQ_weights);
@@ -44,10 +48,11 @@ HighAQsjs=find(AqScoresFromRawData>medAQ);
 
 %%  behavioural performance results
 %nObsWeights=nObsPerFtPerSj(:)/mean(nObsPerFtPerSj(:));
-GrandMean=mean(PerfPerSjIm(:));
+GrandMean=mean(PerfPerSjIm(:))
 PerfPerSj=mean(PerfPerSjIm,2);
 PerfSTD=std(PerfPerSj)
 PerfPerSj_CatDog=[mean(PerfPerSjIm(:,CatRef),2),mean(PerfPerSjIm(:,DogRef),2)] ;
+
 AQgroup=repmat([ones(numel(LowAQsjs),1);ones(numel(HighAQsjs),1)*2],1,2);
 CatDog=[ones(nSjs,1),ones(nSjs,1)*2];
 Cat_Dog_Perf=mean(PerfPerSj_CatDog)
@@ -57,6 +62,17 @@ anovan(PerfPerSj_CatDog(:),[AQgroup(:),CatDog(:)],'full')
 LAQperf=mean(mean(mean(FtDiagnRatingPerSj(LowAQsjs,:,:)),2),3)
 HAQperf=mean(mean(mean(FtDiagnRatingPerSj(HighAQsjs,:,:)),2),3)
 
+ProportionUnsurePerSj=zeros(nSjs,1);
+ProportionIncorrectPerSj=zeros(nSjs,1);
+for sj=1:nSjs
+    ProportionUnsurePerSj(sj)=mean(BehDat(SjRef==sj,6)==3);
+    ProportionIncorrectPerSj(sj)=mean(BehDat(SjRef==sj,6)<3&BehDat(SjRef==sj,3)~=BehDat(SjRef==sj,6));
+end
+ProportionUnsurePerSj_GrandMean=mean(ProportionUnsurePerSj)
+ProportionUnsurePerSj_SD=std(ProportionUnsurePerSj)
+
+ProportionIncorrectPerSj_GrandMean=mean(ProportionIncorrectPerSj)
+ProportionIncorrectPerSj_SD=std(ProportionIncorrectPerSj)
 %%  Behavioural RT results
 GrandMean=nanmean(RTsPerSjIm(:))
 RTPerSj=nanmean(RTsPerSjIm(:,:),2);
@@ -119,7 +135,7 @@ for dim=1:numel(DimNames)
     AllBinAQpreds(dim,:,:) =BinAQpreds;
 end
 % plot selected anova results, 1:3={'SF','DFE','DFC'}
-selDim=2;
+selDim=3;
 figure(222);
 anovan(AllFDiVals(selDim,:,:)',squeeze(AllBinAQpreds(selDim,:,:)),'full');
 
@@ -131,7 +147,7 @@ for sj=1:52
     SjInds=[1:NrBins]+(NrBins*(sj-1))
     FDiPerBinAndSj(sj,:)=AllFDiVals(1,SjInds);
 end
-[h p ci stats]=ttest2(FDiPerBinAndSj(HighAQsjs,5),FDiPerBinAndSj(LowAQsjs,5))
+[h p ci stats]=ttest2(FDiPerBinAndSj(HighAQsjs,5),FDiPerBinAndSj(LowAQsjs,5));
 
 B=zeros(nSjs,1);
 for sj=1:nSjs
@@ -159,10 +175,10 @@ for sc=1:5
     stats.tstat
     p=p*5 %bonf correction
 end
+OtherVals=PerSCdata(:,[2 4 5]);
+[h p ci stats]=ttest2(PerSCdata(:,1),OtherVals(:));
 OtherVals=PerSCdata(:,[2 4 5])
-[h p ci stats]=ttest2(PerSCdata(:,1),OtherVals(:))
-OtherVals=PerSCdata(:,[2 4 5])
-[h p ci stats]=ttest2(PerSCdata(:,3),OtherVals(:))
+[h p ci stats]=ttest2(PerSCdata(:,3),OtherVals(:));
 
 % figure(78);notBoxPlot(SFmodPerTraitType,1:5,'interval' ,'tInterval');
 figure(77);
@@ -174,12 +190,14 @@ set(gca,'Xtick',[])
 
 
 [B,STATS] =robustfit(log(QuestionClDiag),SFprefModPerTrait);
+STATS.t
+STATS.p
 figure(55); hold on
 [vals inds]=sort(log(QuestionClDiag));
 plot(vals,B(1)+[B(2)*log(QuestionClDiag(inds))],'r','LineWidth',3);
-scatter(log(QuestionClDiag),SFprefModPerTrait,50,'k','filled')
+scatter(log(QuestionClDiag),SFprefModPerTrait,50,'k','filled');
 xlabel('item clinical diagnosticity [log odds ratio)]');ylabel('item-realted high spatial frequency preference increase [a.u.]');
-[rho p]=corr(log(QuestionClDiag),SFprefModPerTrait)
+[rho p]=corr(log(QuestionClDiag),SFprefModPerTrait);
 
 
 %% FIGURE 1c
@@ -318,7 +336,7 @@ for i=1:nCorsPerAv
     shCorrVals(i)=corr(MeanOddVect',MeanEvenVect');
 end
 toc
-obsSHcorr=mean(shCorrVals)
+obsSHcorr=mean(shCorrVals);
 shCorrValsPermed=shCorrVals;
 meanPermRhos=zeros(nPerms,1);
 for perm=1:nPerms
@@ -355,6 +373,7 @@ ax=gca;
 ax.YTick= 0:100:500;
 ax.LineWidth=2;
 set(gca, 'TickDir', 'out');
-mean( meanPermRhos>obsSHcorr)
+obsSHcorr
+ProbabilityOfObsSHcorr=mean( meanPermRhos>obsSHcorr)
 
 
